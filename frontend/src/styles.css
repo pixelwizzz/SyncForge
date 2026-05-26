@@ -1,0 +1,166 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* SyncForge — Ink on Glass design system */
+
+@theme inline {
+  --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Departure Mono", ui-monospace, "JetBrains Mono", monospace;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  --color-background: var(--surface);
+  --color-foreground: var(--ink);
+
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-sunken: var(--surface-sunken);
+
+  --color-ink: var(--ink);
+  --color-ink-secondary: var(--ink-secondary);
+  --color-ink-muted: var(--ink-muted);
+
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-accent: var(--accent);
+  --color-accent-light: var(--accent-light);
+  --color-accent-dim: var(--accent-dim);
+  --color-accent-foreground: #ffffff;
+
+  --color-positive: var(--positive);
+  --color-warning: var(--warning);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: #ffffff;
+
+  --color-priority-low: var(--priority-low);
+  --color-priority-medium: var(--priority-medium);
+  --color-priority-high: var(--priority-high);
+  --color-priority-urgent: var(--priority-urgent);
+
+  --color-status-todo: var(--status-todo);
+  --color-status-inprogress: var(--status-inprogress);
+  --color-status-review: var(--status-review);
+  --color-status-done: var(--status-done);
+
+  /* shadcn aliases */
+  --color-card: var(--surface-raised);
+  --color-card-foreground: var(--ink);
+  --color-popover: var(--surface-raised);
+  --color-popover-foreground: var(--ink);
+  --color-primary: var(--ink);
+  --color-primary-foreground: var(--surface);
+  --color-secondary: var(--surface-sunken);
+  --color-secondary-foreground: var(--ink);
+  --color-muted: var(--surface-sunken);
+  --color-muted-foreground: var(--ink-secondary);
+  --color-input: var(--border);
+  --color-ring: var(--accent);
+
+  --shadow-paper: 0 1px 2px rgba(26, 23, 20, 0.04);
+  --shadow-paper-hover: 0 2px 12px rgba(26, 23, 20, 0.06);
+
+  --ease-ink: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:root {
+  --surface: #f7f5f0;
+  --surface-raised: #fdfcf9;
+  --surface-sunken: #efece6;
+
+  --ink: #1a1714;
+  --ink-secondary: #6b635a;
+  --ink-muted: #a89e95;
+
+  --border: #e2ddd7;
+  --border-strong: #c4bcb4;
+
+  --accent: #c8882a;
+  --accent-light: #f5e8d0;
+  --accent-dim: #8c5e1a;
+
+  --positive: #3d7a5f;
+  --warning: #b8720a;
+  --destructive: #a0402e;
+
+  --priority-low: #8db3a0;
+  --priority-medium: #c8a84b;
+  --priority-high: #c07845;
+  --priority-urgent: #a0402e;
+
+  --status-todo: #a89e95;
+  --status-inprogress: #5a8fb8;
+  --status-review: #9b7fb6;
+  --status-done: #3d7a5f;
+
+  --radius: 6px;
+}
+
+@layer base {
+  @font-face {
+    font-family: "Instrument Serif";
+    src: url("https://fonts.gstatic.com/s/instrumentserif/v4/jizDREVItHgc8qDIbSTKq4XKVjEYf6FxRwGFG4Q.woff2") format("woff2");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: "Instrument Serif";
+    src: url("https://fonts.gstatic.com/s/instrumentserif/v4/jizBREVItHgc8qDIbSTKq4XKVjEYf6FxRyAFGgGo4XY.woff2") format("woff2");
+    font-weight: 400;
+    font-style: italic;
+    font-display: swap;
+  }
+
+  * {
+    border-color: var(--color-border);
+  }
+
+  html,
+  body {
+    background-color: var(--color-surface);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background: var(--accent-light);
+    color: var(--ink);
+  }
+
+  .font-serif { font-family: var(--font-serif); }
+  .font-mono { font-family: var(--font-mono); font-feature-settings: normal; }
+  .tabular { font-variant-numeric: tabular-nums; }
+
+  .dot-grid {
+    background-image: radial-gradient(circle, var(--border-strong) 1px, transparent 1px);
+    background-size: 16px 16px;
+    background-position: 0 0;
+    opacity: 0.35;
+  }
+}
+
+@keyframes ink-fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.animate-ink-in { animation: ink-fade-up 340ms var(--ease-ink) both; }
+.shimmer {
+  background: linear-gradient(90deg, var(--surface-sunken) 0%, var(--border) 50%, var(--surface-sunken) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
