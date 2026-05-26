@@ -71,6 +71,7 @@ backend/uploads/
 
 # Ignore agent, docs, and documentation folders per request
 agent/
+.agent/
 docs/
 documentation/
 
