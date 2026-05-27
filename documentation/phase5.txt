@@ -1,0 +1,95 @@
+========================================================================
+             SYNCFORGE PROJECT DOCUMENTATION - PHASE 5
+                File Attachments & CI/CD Pipeline
+========================================================================
+
+------------------------------------------------------------------------
+1. OVERVIEW: WHAT IS PHASE 5?
+------------------------------------------------------------------------
+Phase 5 introduces binary payload handling (local file uploads via Multer), 
+secure task-attachment linking, automated integration testing (via Jest 
+and Supertest), and professional DevOps automation (Continuous Integration 
+via GitHub Actions).
+
+------------------------------------------------------------------------
+2. WHY DID WE DO THIS? (The DevOps & Domain Rationale)
+------------------------------------------------------------------------
+In your project presentation, defend these advanced practices:
+* Binary Payload Context: Collaborative tasks are rarely just text. Users 
+  need to attach PDF spec sheets, PNG design wireframes, or ZIP source code.
+* Orphaned File Prevention (Clean Disk Policy): A common backend bug is 
+  saving a file to disk, but the database write fails—leaving a "ghost" 
+  file that eats disk space forever. We built strict try-catch cleanups 
+  to delete files from disk if database operations fail.
+* Boundary Security on Binary Uploads: We must verify a user is a member 
+  of a task's team *before* we allow them to write files to our drive, 
+  preventing malicious upload attacks.
+* Automated Integration Testing: Rather than clicking through Postman for 
+  hours, automated tests verify the entire routing, middleware, and rate 
+  limiting sequences in under 1 second.
+* Continuous Integration (CI): The golden rule of modern software is 
+  "never deploy untested code." GitHub Actions automatically boots our API 
+  and its active database dependencies (Postgres + Redis) in isolated 
+  cloud containers on every push/PR to verify build integrity.
+
+------------------------------------------------------------------------
+3. HOW DID WE DO IT? (Technical Implementation Details)
+------------------------------------------------------------------------
+We designed and implemented this pipeline across five core systems:
+
+A. Multer Upload Engine Configuration (`src/uploads/multer.config.js`)
+   * Directory Initialization: Checks if the target folder exists on boot, 
+     creating it recursively if missing.
+   * Filename Sanitization: Formats filenames using a timestamp and a 
+     unique random suffix (`Date.now() + Math.random()`) to prevent namespace 
+     collisions (users uploading files with the same name).
+   * MIME Filters & File Limits: Strictly restricts uploads to safe files 
+     (images, docx, pdfs, sheets, and zip archives) and enforces a 10MB ceiling.
+
+B. Secure Attachment Service Layer (`src/uploads/upload.service.js`)
+   * Secure Writes: Validates task presence and user team-membership first. 
+     If any validation fails, the uploaded file is instantly deleted from disk.
+   * Hydrated Profiles: Fetches the uploader's user profile (avatar, name) 
+     and attaches it to the database record, ensuring the frontend has uploader details.
+   * Secure Deletions: Restricts file deletions to the user who uploaded them 
+     or team administrators, and physically deletes the file from disk before 
+     removing the DB record.
+
+C. Static File Serving (`src/app.js` & `src/uploads/upload.routes.js`)
+   Mounted `/api/v1` routes protected by authentication. Configured Express 
+   static middleware (`express.static`) to safely serve files from the 
+   `/uploads` directory, making attachments directly accessible via HTTP.
+
+D. Supertest Integration Suite (`tests/integration/health.test.js`)
+   Wrote integration tests that boot the Express server instance in memory, 
+   dispatch mock requests, and assert that the response structure, content 
+   headers, and success envelopes match our specifications.
+
+E. GitHub Actions CI Pipeline (`.github/workflows/ci.yml`)
+   Created a YAML pipeline that:
+   * Triggers on pull requests or commits to main.
+   * Spins up official Docker Service Containers for Postgres and Redis.
+   * Checks out code, configures environment keys, and runs ESLint audits.
+   * Executes the test suite against live database instances in the cloud.
+
+------------------------------------------------------------------------
+4. WHAT CHANGES DOES THIS CREATE IN THE APPLICATION?
+------------------------------------------------------------------------
+* Upload Endpoints: Users can now hit:
+  - `POST /api/v1/tasks/:taskId/attachments` (Upload file)
+  - `DELETE /api/v1/attachments/:id` (Delete file)
+* Real-Time Broadcasts: Upload actions trigger real-time `attachment:created` 
+  and `attachment:deleted` WebSocket broadcasts to update active team workspaces.
+* Local Storage: Files are organized inside a dedicated local `uploads/` 
+  folder on disk.
+
+------------------------------------------------------------------------
+5. WHY IS THIS IMPORTANT FOR THE PROJECT?
+------------------------------------------------------------------------
+Phase 5 completes the production-readiness of SyncForge. It proves you can:
+1. Handle multi-part binary payloads safely and secure disk directories.
+2. Build failsafe file storage strategies to prevent disk space leaks.
+3. Write automated test suites utilizing Supertest.
+4. Architect professional cloud automation pipelines (CI/CD with Docker 
+   services) that validate repository builds automatically.
+========================================================================

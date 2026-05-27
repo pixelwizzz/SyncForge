@@ -2,17 +2,24 @@
  * React Query hooks for Teams API.
  * Handles team CRUD and membership management.
  */
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '@/lib/api-client';
-import type { Team, TeamWithRole, CreateTeamPayload, UpdateTeamPayload, InviteMemberPayload, TeamMember } from '@/lib/types';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { api } from "@/lib/api-client";
+import type {
+  Team,
+  TeamWithRole,
+  CreateTeamPayload,
+  UpdateTeamPayload,
+  InviteMemberPayload,
+  TeamMember,
+} from "@/lib/types";
 
 // ── Query key factory ──────────────────────────────────────────
 export const teamKeys = {
-  all: ['teams'] as const,
-  lists: () => [...teamKeys.all, 'list'] as const,
-  details: () => [...teamKeys.all, 'detail'] as const,
+  all: ["teams"] as const,
+  lists: () => [...teamKeys.all, "list"] as const,
+  details: () => [...teamKeys.all, "detail"] as const,
   detail: (id: string) => [...teamKeys.details(), id] as const,
-  members: (teamId: string) => [...teamKeys.detail(teamId), 'members'] as const,
+  members: (teamId: string) => [...teamKeys.detail(teamId), "members"] as const,
 };
 
 // ── Queries ────────────────────────────────────────────────────
@@ -24,7 +31,7 @@ export function useMyTeams() {
   return useQuery({
     queryKey: teamKeys.lists(),
     queryFn: async () => {
-      const res = await api.get<TeamWithRole[]>('/teams');
+      const res = await api.get<TeamWithRole[]>("/teams");
       return res.data ?? [];
     },
     staleTime: 60_000, // Teams change less frequently
@@ -52,7 +59,7 @@ export function useCreateTeam() {
 
   return useMutation({
     mutationFn: async (payload: CreateTeamPayload) => {
-      const res = await api.post<Team>('/teams', payload);
+      const res = await api.post<Team>("/teams", payload);
       return res.data!;
     },
     onSuccess: () => {

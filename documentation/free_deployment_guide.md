@@ -1,112 +1,258 @@
-# 🆓 SyncForge 100% Free Production Deployment Guide
+# 🎓 Student AWS EC2 Production Docker Compose Guide
 
-This guide walks you through deploying **SyncForge** completely for free using best-in-class cloud platforms with high availability and no inactive "cold starts" or sleep cycles.
+This guide is customized for college projects. It walks you through deploying your **SyncForge Docker Compose infrastructure** on a free **AWS EC2 Instance** (Ubuntu 22.04 LTS) using a student sandbox (AWS Academy / AWS Educate / GitHub Student Pack) with **no credit card required**.
 
-```mermaid
-graph LR
-    User((💻 End User)) -->|React SPA| Vercel[🎨 Vercel - Free SPA Host]
-    User -->|WebSockets / REST| Koyeb[⚡ Koyeb - Free Docker App Host]
-    
-    Koyeb -->|Data Storage| Supabase[(🐘 Supabase - Free Postgres)]
-    Koyeb -->|Cache & PubSub| Upstash[(⚡ Upstash - Free Serverless Redis)]
+---
+
+## ⚡ The Smart "Stop & Start" Credit Conservation Strategy
+
+AWS sandbox accounts provide limited credits. To ensure you do not run out of credits before your project submission:
+1.  **When not in use (Staging)**: Go to the AWS EC2 Console, select your instance, and select **Instance State** -> **Stop Instance**. The virtual machine shuts down, consuming **0 credits**. Your database volume (`pgdata`) and uploads remain fully persisted on disk.
+2.  **During Project Submission/Evaluation**: Go to the AWS Console, and select **Start Instance**.
+3.  **The Auto-Boot Magic**: Because we configured `restart: unless-stopped` in your [backend/docker-compose.yml](file:///d:/Projects/SyncForge/backend/docker-compose.yml), **Docker, Nginx, PostgreSQL, Redis, and your API will automatically boot back up and go live in under 30 seconds** without you needing to SSH into the server or run any commands!
+
+---
+
+## 🔑 Phase 1: Provisioning the Free AWS EC2 Instance
+
+### 1. Launch the EC2 Instance
+1.  Log in to your student AWS Console (AWS Academy or AWS Educate).
+2.  Navigate to the **EC2 Dashboard** and click **Launch Instance**.
+3.  **Name**: `SyncForge-Production`
+4.  **Application and OS Image (AMI)**: Select `Ubuntu` (select `Ubuntu Server 22.04 LTS`, free-tier eligible, x86_64 architecture).
+5.  **Instance Type**: Select `t2.micro` or `t3.micro` (free-tier eligible).
+6.  **Key Pair (Login)**: Click **Create new key pair**. Set name to `syncforge-key`, select `.pem`, and download it to your local computer.
+7.  **Network Settings (Firewall / Security Group)**:
+    *   Create a new Security Group.
+    *   Check **Allow SSH traffic from Anywhere** (Port 22).
+    *   Check **Allow HTTP traffic from the internet** (Port 80).
+    *   Check **Allow HTTPS traffic from the internet** (Port 443).
+8.  Click **Launch Instance** and wait for it to transition to **Running** state.
+
+---
+
+## 🌐 Phase 2: Setting up a Free SSL Domain (DuckDNS)
+
+Let's Encrypt does not allow provisioning SSL certificates directly for default AWS domains (`compute-1.amazonaws.com`). 
+To get a secure `https://` and `wss://` domain for free without a credit card, we use **DuckDNS** (a free dynamic DNS provider hosted by AWS):
+
+1.  Go to [duckdns.org](https://www.duckdns.org) and log in using your GitHub account.
+2.  In the **Domains** section, type a unique subdomain (e.g. `syncforge-college`) and click **Add Domain**.
+3.  Your domain is now active: `syncforge-college.duckdns.org`.
+4.  Copy your **DuckDNS Token** (a UUID string displayed at the top of the DuckDNS dashboard).
+
+---
+
+## ⚙️ Phase 3: Provisioning the Host Environment
+
+Connect to your EC2 instance from your computer (replace `/path/to/syncforge-key.pem` and `your-ec2-ip` with your credentials):
+```bash
+ssh -i /path/to/syncforge-key.pem ubuntu@your-ec2-ip
+```
+
+### 1. Install Docker, Docker Compose, Git, and Nginx
+Run this shell script on your EC2 instance to install all required host packages:
+```bash
+# Update Ubuntu repositories
+sudo apt update && sudo apt upgrade -y
+
+# Install dependencies
+sudo apt install -y apt-transport-https ca-certificates curl software-properties-common gnupg lsb-release git nginx certbot python3-certbot-nginx
+
+# Add Docker’s official GPG key
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+# Set up the stable Docker repository
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# Install Docker
+sudo apt update
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+# Enable and start Docker
+sudo systemctl enable docker
+sudo systemctl start docker
+sudo usermod -aG docker $USER
+newgrp docker
 ```
 
 ---
 
-## 🔑 Phase 1: Provisioning the Free Databases
+## 🔄 Phase 4: Setting up Automated Dynamic IP Sync
 
-### 1. PostgreSQL on Supabase (100% Free)
-Supabase provides a dedicated PostgreSQL database that stays online 24/7.
+Whenever you **Stop** and **Start** an EC2 instance, AWS assigns it a **new Public IP Address**. To prevent your domain from breaking or requiring manual updates on DuckDNS every time you reboot the server, we set up an automated startup script:
 
-1. Go to [supabase.com](https://supabase.com) and sign up for a free account.
-2. Create a new project named `SyncForge`. Set a strong database password and keep it safe.
-3. Select your nearest region (e.g., AWS us-east-1 or eu-central-1).
-4. Once the project is ready, navigate to **Project Settings** (gear icon) -> **Database**.
-5. Scroll down to **Connection string**, select **URI**, and copy the string:
-   ```bash
-   # It will look like this (replace [YOUR-PASSWORD] with your actual database password):
-   postgresql://postgres:[YOUR-PASSWORD]@db.xxxxxx.supabase.co:5432/postgres
-   ```
-6. **Save this string** as `DATABASE_URL` for your backend.
-
----
-
-### 2. Serverless Redis on Upstash (100% Free)
-Upstash is serverless Redis designed for high throughput, offering up to 10,000 requests per day for free.
-
-1. Go to [upstash.com](https://upstash.com) and sign up.
-2. Under the Redis tab, click **Create Database**.
-3. Name it `syncforge-redis`, choose a region near your Supabase database, and click **Create**.
-4. In the database dashboard under **Details**, find the **Redis Connect URL** section.
-5. Copy the URL:
-   ```bash
-   # It will look like this:
-   redis://default:xxxxxx@xxxxxx.upstash.io:6379
-   ```
-6. **Save this string** as `REDIS_URL` for your backend.
+1.  On your EC2 instance, create an IP update script:
+    ```bash
+    mkdir -p ~/scripts
+    nano ~/scripts/update_dns.sh
+    ```
+2.  Paste the following content (replace `YOUR_SUBDOMAIN` with your subdomain e.g. `syncforge-college` and `YOUR_TOKEN` with your DuckDNS Token):
+    ```bash
+    #!/bin/bash
+    # Call the DuckDNS API leaving IP blank to auto-detect our new EC2 Public IP
+    curl -s "https://www.duckdns.org/update?domains=YOUR_SUBDOMAIN&token=YOUR_TOKEN&ip="
+    echo "DNS updated successfully at $(date)"
+    ```
+3.  Save the file (`Ctrl+O`, `Enter`, `Ctrl+X`) and make it executable:
+    ```bash
+    chmod +x ~/scripts/update_dns.sh
+    ```
+4.  Add a **Cron `@reboot` job** so that the script runs automatically every time the EC2 instance boots up:
+    ```bash
+    crontab -e
+    # Select nano, scroll to the bottom, and add this line:
+    @reboot /home/ubuntu/scripts/update_dns.sh >> /home/ubuntu/scripts/dns_update.log 2>&1
+    ```
+*   **Result**: Every time you start your EC2 instance from the AWS console, the server automatically updates DuckDNS with its new IP address! Your domain `syncforge-college.duckdns.org` remains 100% functional and pointing to your active instance.
 
 ---
 
-## 🔒 Phase 2: Gathering Clerk Auth Credentials
+## 🐳 Phase 5: Deploying your Docker Stack
 
-1. Open your [Clerk Dashboard](https://dashboard.clerk.com).
-2. Go to **API Keys** in the sidebar.
-3. Copy the public key and secret key:
-   * `CLERK_PUBLISHABLE_KEY` (starts with `pk_test_` or `pk_live_`)
-   * `CLERK_SECRET_KEY` (starts with `sk_test_` or `sk_live_`)
-4. To configure JWT validation locally without hitting Clerk APIs every time (optimizes speed):
-   * Go to **JWT Templates** in Clerk, or retrieve Clerk's asymmetric public key (PEM format). Paste the public key as a single-line string into your `CLERK_JWT_KEY` environment variable.
+### 1. Clone Code and Configure Environment Variables
+```bash
+sudo mkdir -p /var/www/syncforge
+sudo chown -R $USER:$USER /var/www/syncforge
+cd /var/www/syncforge
 
----
+# Clone your GitHub Repository
+git clone https://github.com/YOUR-USERNAME/SyncForge.git .
 
-## ⚡ Phase 3: Deploying the Backend on Koyeb (100% Free)
+# Create the environment configuration file
+nano backend/.env
+```
+Paste and populate your production secrets:
+```bash
+NODE_ENV=production
+PORT=3000
+API_VERSION=v1
 
-Koyeb is a powerful container-hosting platform. Unlike Render's free tier, **Koyeb does not spin down (sleep)**, so your API and WebSockets will respond instantly 24/7.
+# Internal Database routing
+DB_HOST=postgres
+DB_PORT=5432
+DB_NAME=syncforge
+DB_USER=syncforge_user
+DB_PASSWORD=YOUR_STRONG_POSTGRES_DB_PASSWORD
+DATABASE_URL=postgresql://syncforge_user:YOUR_STRONG_POSTGRES_DB_PASSWORD@postgres:5432/syncforge
 
-1. Go to [koyeb.com](https://koyeb.com) and create a free account.
-2. Click **Create Service**.
-3. Choose **GitHub** as the deployment method and authorize your repository.
-4. Select your **SyncForge** repository.
-5. Configure the deployment settings exactly as follows:
-   * **Application Directory:** Set to `backend` (this ensures Koyeb looks inside the backend folder).
-   * **Builder:** Select **Docker** (it will automatically read your highly optimized `backend/Dockerfile`).
-   * **Port:** Set the port to `3000` (matches the Dockerfile's exposed port).
-   * **Instance Type:** Select **Nano** (free tier).
-6. Under **Environment Variables**, add:
-   * `DATABASE_URL` = *(Your Supabase connection string)*
-   * `REDIS_URL` = *(Your Upstash connection string)*
-   * `CLERK_PUBLISHABLE_KEY` = *(Your Clerk public key)*
-   * `CLERK_SECRET_KEY` = *(Your Clerk secret key)*
-   * `PORT` = `3000`
-   * `NODE_ENV` = `production`
-   * `CORS_ORIGIN` = `https://<your-vercel-app-name>.vercel.app` (You can update this after Vercel is deployed)
-7. Click **Deploy**. Within 2-3 minutes, Koyeb will build your container, run the health check, and give you a public URL (e.g., `https://syncforge-api-xxxx.koyeb.app`).
-8. **Copy your Koyeb API URL** (we'll need it for the frontend).
+REDIS_HOST=redis
+REDIS_PORT=6379
+REDIS_URL=redis://redis:6379
 
----
+# Clerk Authentication (Use Clerk Production or Dev keys)
+CLERK_PUBLISHABLE_KEY=pk_test_xxxxxx
+CLERK_SECRET_KEY=sk_test_xxxxxx
+CLERK_WEBHOOK_SECRET=whsec_xxxxxx
 
-## 🎨 Phase 4: Deploying the Frontend on Vercel (100% Free)
+# CORS Configuration (Set to your Vercel frontend URL)
+CORS_ORIGIN=https://syncforge.vercel.app
+```
 
-Vercel is the premier host for React. It automatically handles builds and handles static asset caching globally.
-
-1. Go to [vercel.com](https://vercel.com) and sign up with your GitHub account.
-2. Click **Add New** -> **Project**.
-3. Import your **SyncForge** repository.
-4. In the configuration window:
-   * **Root Directory:** Edit this and select the `frontend` folder.
-   * **Framework Preset:** Select **Vite** (Vercel will auto-detect Vite).
-5. Click **Environment Variables** and add:
-   * `VITE_API_URL` = *(Your Koyeb API URL, e.g., `https://syncforge-api-xxxx.koyeb.app`)*
-   * `VITE_CLERK_PUBLISHABLE_KEY` = *(Your Clerk public key)*
-6. Click **Deploy**. Vercel will build the frontend, and provide you with a production URL (e.g., `https://syncforge-three.vercel.app`).
-7. **Important:** Copy this Vercel URL, go back to your Koyeb Environment Variables, update `CORS_ORIGIN` to match this URL, and redeploy the Koyeb service to securely allow requests.
+### 2. Launch the Containers
+```bash
+cd /var/www/syncforge/backend
+docker compose up -d --build
+```
+This builds and boots your API, Postgres database, Redis cache, and Nginx gateway. Verify they are healthy:
+```bash
+docker compose ps
+```
 
 ---
 
-## 🔄 Phase 5: CI/CD Status (GitHub Actions)
+## 🔒 Phase 6: Let's Encrypt SSL Gateway Setup
 
-Your repository contains a pre-configured GitHub Actions pipeline (`.github/workflows/ci.yml`). Every time you push code to `main`/`master` or open a Pull Request:
-1. GitHub Actions automatically boots an automated **PostgreSQL** and **Redis** instance inside its runner.
-2. It runs `npm run lint` and `npm run test:integration` inside `/backend` to make sure all endpoints function correctly.
-3. It installs and builds the `/frontend` assets to catch any compile-time errors.
-4. Once this workflow passes green, you can be 100% confident that your deploy to Vercel and Koyeb will build and operate cleanly!
+We terminate SSL at the host level, securing both HTTP (`https://`) and WebSockets (`wss://`).
+
+1.  Run the DuckDNS sync script manually to ensure your DNS points to the EC2 IP:
+    ```bash
+    ~/scripts/update_dns.sh
+    ```
+2.  Create the host Nginx proxy config:
+    ```bash
+    sudo nano /etc/nginx/sites-available/syncforge
+    ```
+3.  Paste the configuration (replace `syncforge-college.duckdns.org` with your domain):
+    ```nginx
+    server {
+        listen 80;
+        server_name syncforge-college.duckdns.org;
+
+        location /.well-known/acme-challenge/ {
+            root /var/www/html;
+        }
+
+        location / {
+            return 301 https://$host$request_uri;
+        }
+    }
+    ```
+4.  Activate the site and reload Nginx:
+    ```bash
+    sudo ln -s /etc/nginx/sites-available/syncforge /etc/nginx/sites-enabled/
+    sudo rm -f /etc/nginx/sites-enabled/default
+    sudo systemctl restart nginx
+    ```
+5.  Generate the Let's Encrypt SSL Certificates using Certbot:
+    ```bash
+    sudo certbot --nginx -d syncforge-college.duckdns.org
+    ```
+    Select `Yes` to redirect all traffic.
+6.  Modify the Nginx file to proxy secure traffic to your Docker container gateway:
+    ```bash
+    sudo nano /etc/nginx/sites-available/syncforge
+    ```
+    Update the secure configuration block (listening on port `443`) to look exactly like this:
+    ```nginx
+    server {
+        listen 443 ssl;
+        server_name syncforge-college.duckdns.org;
+
+        ssl_certificate /etc/letsencrypt/live/syncforge-college.duckdns.org/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/syncforge-college.duckdns.org/privkey.pem;
+
+        location / {
+            proxy_pass http://localhost:8080; # Directs to docker-compose nginx gateway
+            proxy_http_version 1.1;
+
+            # WebSocket Header Upgrades
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+
+            # Headers
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+    }
+    ```
+7.  Verify and reload Nginx:
+    ```bash
+    sudo nginx -t
+    sudo systemctl reload nginx
+    ```
+
+Your AWS EC2 secure backend gateway is now live at `https://syncforge-college.duckdns.org`!
+
+---
+
+## 💾 Phase 7: Daily Database Backups (Cron Job)
+
+Ensure you never lose database records during instance shut-downs. Create a host-level cron job to capture nightly backups:
+
+1.  Create the backups folder:
+    ```bash
+    sudo mkdir -p /var/backups/syncforge
+    sudo chown $USER:$USER /var/backups/syncforge
+    ```
+2.  Open your crontab config:
+    ```bash
+    crontab -e
+    ```
+3.  Add the backup schedule line to execute every night at 2:00 AM:
+    ```bash
+    0 2 * * * docker exec -t syncforge-postgres pg_dumpall -c -U syncforge_user | gzip > /var/backups/syncforge/db_backup_$(date +\%F).sql.gz
+    ```

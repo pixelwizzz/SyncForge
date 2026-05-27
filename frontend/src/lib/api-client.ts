@@ -5,8 +5,8 @@
  * error handling, base URL resolution, and auth token injection.
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-const API_PREFIX = '/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const API_PREFIX = "/api/v1";
 
 export interface ApiResponse<T = unknown> {
   success: boolean;
@@ -32,9 +32,14 @@ export class ApiError extends Error {
   statusCode: number;
   details?: Array<{ field: string; message: string }>;
 
-  constructor(statusCode: number, code: string, message: string, details?: Array<{ field: string; message: string }>) {
+  constructor(
+    statusCode: number,
+    code: string,
+    message: string,
+    details?: Array<{ field: string; message: string }>,
+  ) {
     super(message);
-    this.name = 'ApiError';
+    this.name = "ApiError";
     this.statusCode = statusCode;
     this.code = code;
     this.details = details;
@@ -49,10 +54,7 @@ export function setTokenGetter(getter: () => Promise<string | null>) {
 }
 
 // ── Core request function ─────────────────────────────────────
-async function request<T>(
-  endpoint: string,
-  options: RequestInit = {},
-): Promise<ApiResponse<T>> {
+async function request<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
   const url = `${API_BASE_URL}${API_PREFIX}${endpoint}`;
 
   const headers: Record<string, string> = {
@@ -61,7 +63,7 @@ async function request<T>(
 
   // Don't set Content-Type for FormData (browser sets multipart boundary)
   if (!(options.body instanceof FormData)) {
-    headers['Content-Type'] = 'application/json';
+    headers["Content-Type"] = "application/json";
   }
 
   // Inject Clerk session token if available
@@ -69,7 +71,7 @@ async function request<T>(
     try {
       const token = await _getToken();
       if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+        headers["Authorization"] = `Bearer ${token}`;
       }
     } catch {
       // Silently continue without auth if token fetch fails
@@ -79,7 +81,7 @@ async function request<T>(
   const response = await fetch(url, {
     ...options,
     headers,
-    credentials: 'include',
+    credentials: "include",
   });
 
   const data: ApiResponse<T> = await response.json();
@@ -87,8 +89,8 @@ async function request<T>(
   if (!response.ok || !data.success) {
     throw new ApiError(
       response.status,
-      data.error?.code || 'UNKNOWN_ERROR',
-      data.error?.message || 'An unexpected error occurred',
+      data.error?.code || "UNKNOWN_ERROR",
+      data.error?.message || "An unexpected error occurred",
       data.error?.details,
     );
   }
@@ -103,24 +105,23 @@ export const api = {
 
   post: <T>(endpoint: string, body?: unknown) =>
     request<T>(endpoint, {
-      method: 'POST',
+      method: "POST",
       body: body instanceof FormData ? body : JSON.stringify(body),
     }),
 
   put: <T>(endpoint: string, body?: unknown) =>
     request<T>(endpoint, {
-      method: 'PUT',
+      method: "PUT",
       body: JSON.stringify(body),
     }),
 
-  delete: <T>(endpoint: string) =>
-    request<T>(endpoint, { method: 'DELETE' }),
+  delete: <T>(endpoint: string) => request<T>(endpoint, { method: "DELETE" }),
 
-  upload: <T>(endpoint: string, file: File, fieldName = 'file') => {
+  upload: <T>(endpoint: string, file: File, fieldName = "file") => {
     const formData = new FormData();
     formData.append(fieldName, file);
     return request<T>(endpoint, {
-      method: 'POST',
+      method: "POST",
       body: formData,
     });
   },

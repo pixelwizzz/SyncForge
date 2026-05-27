@@ -6,13 +6,13 @@
  * The socket authenticates via Clerk JWT at handshake time,
  * matching the backend's `socket.auth.js` middleware.
  */
-import { useEffect, useRef, useCallback } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { io, type Socket } from 'socket.io-client';
-import { taskKeys } from './use-tasks';
-import type { Task } from '@/lib/types';
+import { useEffect, useRef, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { io, type Socket } from "socket.io-client";
+import { taskKeys } from "./use-tasks";
+import type { Task } from "@/lib/types";
 
-const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const SOCKET_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 let socketInstance: Socket | null = null;
 
@@ -29,7 +29,7 @@ function getSocket(opts: SocketOptions): Socket {
 
   socketInstance = io(SOCKET_URL, {
     autoConnect: false,
-    transports: ['websocket', 'polling'],
+    transports: ["websocket", "polling"],
     auth: async (cb) => {
       const token = await opts.getToken();
       cb({ token });
@@ -74,29 +74,29 @@ export function useRealtimeSync(teamIds: string[], getToken: () => Promise<strin
 
   useEffect(() => {
     // Don't run during SSR
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
 
     const socket = getSocket({ getToken });
     socketRef.current = socket;
 
-    socket.on('connect', () => {
-      console.debug('[SyncForge WS] Connected:', socket.id);
+    socket.on("connect", () => {
+      console.debug("[SyncForge WS] Connected:", socket.id);
       // Re-join rooms on reconnect
       teamIds.forEach((teamId) => {
-        socket.emit('team:join', teamId);
+        socket.emit("team:join", teamId);
         joinedRooms.current.add(teamId);
       });
     });
 
-    socket.on('disconnect', (reason) => {
-      console.debug('[SyncForge WS] Disconnected:', reason);
+    socket.on("disconnect", (reason) => {
+      console.debug("[SyncForge WS] Disconnected:", reason);
       joinedRooms.current.clear();
     });
 
     // Real-time data events
-    socket.on('task:created', handleTaskCreated);
-    socket.on('task:updated', handleTaskUpdated);
-    socket.on('task:deleted', handleTaskDeleted);
+    socket.on("task:created", handleTaskCreated);
+    socket.on("task:updated", handleTaskUpdated);
+    socket.on("task:deleted", handleTaskDeleted);
 
     // Connect if not already
     if (!socket.connected) {
@@ -106,23 +106,23 @@ export function useRealtimeSync(teamIds: string[], getToken: () => Promise<strin
     // Join any new rooms
     teamIds.forEach((teamId) => {
       if (!joinedRooms.current.has(teamId)) {
-        socket.emit('team:join', teamId);
+        socket.emit("team:join", teamId);
         joinedRooms.current.add(teamId);
       }
     });
 
     return () => {
-      socket.off('task:created', handleTaskCreated);
-      socket.off('task:updated', handleTaskUpdated);
-      socket.off('task:deleted', handleTaskDeleted);
+      socket.off("task:created", handleTaskCreated);
+      socket.off("task:updated", handleTaskUpdated);
+      socket.off("task:deleted", handleTaskDeleted);
 
       // Leave rooms but keep socket open (singleton)
       joinedRooms.current.forEach((teamId) => {
-        socket.emit('team:leave', teamId);
+        socket.emit("team:leave", teamId);
       });
       joinedRooms.current.clear();
     };
-  }, [teamIds.join(','), getToken, handleTaskCreated, handleTaskUpdated, handleTaskDeleted]);
+  }, [teamIds.join(","), getToken, handleTaskCreated, handleTaskUpdated, handleTaskDeleted]);
 
   return socketRef;
 }
@@ -136,11 +136,11 @@ export function useTypingIndicator(socket: Socket | null, teamId: string) {
   const startTyping = useCallback(
     (taskId: string) => {
       if (!socket?.connected) return;
-      socket.emit('typing:start', { teamId, taskId });
+      socket.emit("typing:start", { teamId, taskId });
 
       clearTimeout(typingTimeout.current);
       typingTimeout.current = setTimeout(() => {
-        socket.emit('typing:stop', { teamId, taskId });
+        socket.emit("typing:stop", { teamId, taskId });
       }, 3000);
     },
     [socket, teamId],
@@ -150,7 +150,7 @@ export function useTypingIndicator(socket: Socket | null, teamId: string) {
     (taskId: string) => {
       if (!socket?.connected) return;
       clearTimeout(typingTimeout.current);
-      socket.emit('typing:stop', { teamId, taskId });
+      socket.emit("typing:stop", { teamId, taskId });
     },
     [socket, teamId],
   );

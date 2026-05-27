@@ -1,6 +1,15 @@
 import { cn } from "@/lib/utils";
 
-const PALETTE = ["#C8882A", "#5A8FB8", "#9B7FB6", "#8DB3A0", "#C07845", "#C8A84B", "#A0402E", "#6B635A"];
+const PALETTE = [
+  "#C8882A",
+  "#5A8FB8",
+  "#9B7FB6",
+  "#8DB3A0",
+  "#C07845",
+  "#C8A84B",
+  "#A0402E",
+  "#6B635A",
+];
 
 function hashColor(name: string) {
   let h = 0;
@@ -20,7 +29,13 @@ export function Avatar({ name, initials, size = 28, online, className }: Props) 
   const text = initials ?? name.slice(0, 2).toUpperCase();
   const bg = hashColor(name);
   return (
-    <span className={cn("relative inline-flex items-center justify-center rounded-full text-white font-medium select-none", className)} style={{ width: size, height: size, background: bg, fontSize: Math.max(10, size * 0.38) }}>
+    <span
+      className={cn(
+        "relative inline-flex items-center justify-center rounded-full text-white font-medium select-none",
+        className,
+      )}
+      style={{ width: size, height: size, background: bg, fontSize: Math.max(10, size * 0.38) }}
+    >
       {text}
       {online !== undefined && (
         <span

@@ -4,8 +4,8 @@
  */
 
 // ── Task ───────────────────────────────────────────────────────
-export type TaskStatus = 'todo' | 'in_progress' | 'done';
-export type TaskPriority = 'low' | 'medium' | 'high';
+export type TaskStatus = "todo" | "in_progress" | "done";
+export type TaskPriority = "low" | "medium" | "high";
 
 export interface TaskUser {
   id: string;
@@ -74,7 +74,7 @@ export interface TaskQueryParams {
 }
 
 // ── Team ───────────────────────────────────────────────────────
-export type TeamRole = 'owner' | 'admin' | 'member';
+export type TeamRole = "owner" | "admin" | "member";
 
 export interface Team {
   id: string;
@@ -134,13 +134,13 @@ export interface User {
 
 // ── Status / Priority display metadata ─────────────────────────
 export const STATUS_META: Record<TaskStatus, { label: string; color: string; symbol: string }> = {
-  todo: { label: 'Todo', color: 'var(--status-todo)', symbol: '○' },
-  in_progress: { label: 'In Progress', color: 'var(--status-inprogress)', symbol: '●' },
-  done: { label: 'Done', color: 'var(--status-done)', symbol: '✓' },
+  todo: { label: "Todo", color: "var(--status-todo)", symbol: "○" },
+  in_progress: { label: "In Progress", color: "var(--status-inprogress)", symbol: "●" },
+  done: { label: "Done", color: "var(--status-done)", symbol: "✓" },
 };
 
 export const PRIORITY_META: Record<TaskPriority, { label: string; color: string }> = {
-  low: { label: 'Low', color: 'var(--priority-low)' },
-  medium: { label: 'Medium', color: 'var(--priority-medium)' },
-  high: { label: 'High', color: 'var(--priority-high)' },
+  low: { label: "Low", color: "var(--priority-low)" },
+  medium: { label: "Medium", color: "var(--priority-medium)" },
+  high: { label: "High", color: "var(--priority-high)" },
 };

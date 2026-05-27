@@ -69,13 +69,12 @@ uploads/
 backend/logs/
 backend/uploads/
 
-# Ignore agent, docs, and documentation folders per request
+# Ignore agent folders per request
 agent/
 .agent/
-docs/
-documentation/
 
 # Misc
 *.log
 .DS_Store
 task.md
+.vercel/

@@ -1,25 +1,18 @@
-import { Link, useRouterState } from '@tanstack/react-router';
-import { useMyTeams } from '@/hooks/use-teams';
+import { Link, useRouterState } from "@tanstack/react-router";
+import { useMyTeams } from "@/hooks/use-teams";
 
 const NAV = [
-  { to: '/dashboard', label: 'Dashboard' },
-  { to: '/tasks', label: 'My Tasks' },
-  { to: '/inbox', label: 'Inbox', badge: 3 },
+  { to: "/dashboard", label: "Dashboard" },
+  { to: "/tasks", label: "My Tasks" },
+  { to: "/inbox", label: "Inbox", badge: 3 },
 ];
 
 // Fallback team colors when backend doesn't provide them
-const TEAM_COLORS = [
-  '#5A8FB8',
-  '#9B7FB6',
-  '#8DB3A0',
-  '#D4956A',
-  '#7A9E7E',
-  '#B58BA0',
-];
+const TEAM_COLORS = ["#5A8FB8", "#9B7FB6", "#8DB3A0", "#D4956A", "#7A9E7E", "#B58BA0"];
 
 export function Sidebar() {
   const path = useRouterState({ select: (s) => s.location.pathname });
-  const isActive = (to: string) => path === to || (to !== '/' && path.startsWith(to));
+  const isActive = (to: string) => path === to || (to !== "/" && path.startsWith(to));
 
   // Live teams from API — gracefully falls back to empty array
   const { data: teams = [] } = useMyTeams();
@@ -27,14 +20,17 @@ export function Sidebar() {
   return (
     <aside
       className="hidden md:flex flex-col w-[240px] shrink-0 border-r"
-      style={{ background: 'var(--surface-sunken)', borderColor: 'var(--border)' }}
+      style={{ background: "var(--surface-sunken)", borderColor: "var(--border)" }}
     >
       <div className="px-5 py-5">
         <Link to="/dashboard" className="flex items-baseline gap-1.5">
-          <span className="font-serif text-[1.5rem] leading-none" style={{ color: 'var(--ink)' }}>
+          <span className="font-serif text-[1.5rem] leading-none" style={{ color: "var(--ink)" }}>
             Sync
           </span>
-          <span className="font-serif italic text-[1.5rem] leading-none" style={{ color: 'var(--accent)' }}>
+          <span
+            className="font-serif italic text-[1.5rem] leading-none"
+            style={{ color: "var(--accent)" }}
+          >
             Forge
           </span>
         </Link>
@@ -50,21 +46,21 @@ export function Sidebar() {
                 to={item.to}
                 className="group relative flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors"
                 style={{
-                  background: active ? 'var(--accent-light)' : 'transparent',
-                  color: active ? 'var(--ink)' : 'var(--ink-secondary)',
+                  background: active ? "var(--accent-light)" : "transparent",
+                  color: active ? "var(--ink)" : "var(--ink-secondary)",
                 }}
               >
                 {active && (
                   <span
                     className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-r"
-                    style={{ background: 'var(--accent)' }}
+                    style={{ background: "var(--accent)" }}
                   />
                 )}
                 <span>{item.label}</span>
                 {item.badge && (
                   <span
                     className="font-mono text-[10px] tabular px-1.5 py-0.5 rounded"
-                    style={{ background: 'var(--surface-raised)', color: 'var(--ink-secondary)' }}
+                    style={{ background: "var(--surface-raised)", color: "var(--ink-secondary)" }}
                   >
                     {item.badge}
                   </span>
@@ -75,7 +71,10 @@ export function Sidebar() {
         </div>
 
         <div className="mt-7">
-          <div className="px-3 mb-2 text-[10px] uppercase tracking-[0.14em]" style={{ color: 'var(--ink-muted)' }}>
+          <div
+            className="px-3 mb-2 text-[10px] uppercase tracking-[0.14em]"
+            style={{ color: "var(--ink-muted)" }}
+          >
             Teams
           </div>
           <div className="space-y-0.5">
@@ -85,7 +84,7 @@ export function Sidebar() {
                 to="/tasks"
                 search={{ team_id: t.id }}
                 className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm"
-                style={{ color: 'var(--ink-secondary)' }}
+                style={{ color: "var(--ink-secondary)" }}
               >
                 <span
                   className="inline-block w-2 h-2 rounded-full"
@@ -96,7 +95,7 @@ export function Sidebar() {
             ))}
             <button
               className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm w-full text-left"
-              style={{ color: 'var(--ink-muted)' }}
+              style={{ color: "var(--ink-muted)" }}
             >
               <span className="w-2 h-2 inline-block">+</span> New team
             </button>
@@ -104,11 +103,11 @@ export function Sidebar() {
         </div>
       </nav>
 
-      <div className="px-3 py-3 border-t" style={{ borderColor: 'var(--border)' }}>
+      <div className="px-3 py-3 border-t" style={{ borderColor: "var(--border)" }}>
         <Link
           to="/dashboard"
           className="flex items-center gap-2.5 rounded-md px-2 py-2 text-sm"
-          style={{ color: 'var(--ink-secondary)' }}
+          style={{ color: "var(--ink-secondary)" }}
         >
           Settings
         </Link>
